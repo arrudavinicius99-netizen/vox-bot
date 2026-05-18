@@ -27,7 +27,9 @@ def keep_alive():
 keep_alive()
 # GAMBIARRA RENDER - FIM
 
-TOKEN = os.getenv("DISCORD_TOKEN")  # PEGA DO RENDER, NÃO COLA AQUI
+TOKEN = os.getenv("DISCORD_TOKEN") # PEGA DO RENDER, NÃO COLA AQUI
+print(f"TOKEN CARREGADO: {TOKEN[:15] if TOKEN else 'VAZIO/NONE'}")
+
 GUILD_ID = 1504180595511791616
 CANAL_BOAS_VINDAS = 1504298479957053460
 CANAL_REGRAS = 1504301990983897253
@@ -397,6 +399,8 @@ async def warn(interaction: discord.Interaction, usuario: discord.Member, motivo
         await interaction.channel.send(f"{usuario.mention} foi mutado por 10 minutos - 3 avisos acumulados")
 
 if __name__ == "__main__":
+    print("=== CHEGOU NO MAIN ===")
+    print(f"TOKEN EXISTE? {bool(TOKEN)}")
     try:
         print("INICIANDO BOT...")
         bot.run(TOKEN)
