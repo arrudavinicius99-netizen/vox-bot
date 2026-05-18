@@ -201,7 +201,6 @@ async def on_message(message):
         print(f"ERRO on_message: {e}")
 
     await bot.process_commands(message)
-
 @bot.event
 async def on_member_join(member):
     canal = bot.get_channel(CANAL_BOAS_VINDAS)
