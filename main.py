@@ -17,7 +17,7 @@ app = Flask('')
 
 @app.route('/', methods=['GET', 'HEAD'])
 def home():
-    return "Vøx Bot tá online!"
+    return "<h1>Vøx Bot tá online!</h1>"  # AGORA COM HTML
 
 def run_flask():
     port = int(os.environ.get("PORT", 10000))
