@@ -6,6 +6,7 @@ import json
 import os
 import traceback
 from datetime import datetime, timedelta
+importar aiohttp
 
 # GAMBIARRA RENDER - INÍCIO
 from flask import Flask
@@ -30,6 +31,7 @@ keep_alive()
 TOKEN = os.getenv("DISCORD_TOKEN") # PEGA DO RENDER, NÃO COLA AQUI
 print(f"TOKEN CARREGADO: {TOKEN[:15] if TOKEN else 'VAZIO/NONE'}")
 
+GROQ_KEY = os.getenv("GROQ_KEY")
 GUILD_ID = 1504180595511791616
 CANAL_BOAS_VINDAS = 1504298479957053460
 CANAL_REGRAS = 1504301990983897253
@@ -66,6 +68,43 @@ async def on_ready():
     except Exception as e:
         print(f"ERRO SYNC: {e}")
         traceback.print_exc()
+        
+# ========== IA DO VØX ==========
+@bot.tree.command(name="vox", description="Pergunta algo pro VØX IA 🗿")
+@discord.app_commands.describe(pergunta="O que tu quer saber?")
+async def vox_ia(interaction: discord.Interaction, pergunta: str):
+    await interaction.response.defer()
+
+    if not GROQ_KEY:
+        await interaction.followup.send("❌ Chave da IA não configurada no Render.")
+        return
+
+    prompt_sistema = """Você é o VØX, bot oficial da guilda VØX ESPORTS.
+    Responda como líder de guilda BR: direto, motivacional, zoero.
+    Use 🗿🔥, máximo 3 linhas."""
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            headers = {"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"}
+            json_data = {
+                "messages": [
+                    {"role": "system", "content": prompt_sistema},
+                    {"role": "user", "content": pergunta}
+                ],
+                "model": "llama-3.1-70b-versatile",
+                "temperature": 0.8,
+                "max_tokens": 200
+            }
+            async with session.post("https://api.groq.com/openai/v1/chat/completions",
+                                    headers=headers, json=json_data, timeout=20) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    resposta = data["choices"][0]["message"]["content"]
+                    await interaction.followup.send(f"**VØX:** {resposta}")
+                else:
+                    await interaction.followup.send(f"❌ Erro na IA: {resp.status}")
+    except Exception as e:
+        await interaction.followup.send(f"❌ VØX bugou: {str(e)[:100]}")
 
 @bot.event
 async def on_message(message):
