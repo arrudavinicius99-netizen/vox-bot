@@ -6,7 +6,7 @@ import json
 import os
 import traceback
 from datetime import datetime, timedelta
-importar aiohttp
+import aiohttp
 
 # GAMBIARRA RENDER - INÍCIO
 from flask import Flask
