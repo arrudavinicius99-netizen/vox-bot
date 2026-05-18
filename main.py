@@ -195,5 +195,19 @@ async def limpar(interaction: discord.Interaction, quantidade: int):
     deletadas = await interaction.channel.purge(limit=quantidade)
     await interaction.followup.send(f"Deletei {len(deletadas)} mensagens", ephemeral=True)
 
+from flask import Flask
+import threading
+
+app = Flask('')
+@app.route('/')
+def home():
+    return "Bot online"
+
+def run():
+    app.run(host='0.0.0.0', port=10000)
+
+t = threading.Thread(target=run)
+t.start()
+
 if __name__ == "__main__":
     bot.run(TOKEN)
