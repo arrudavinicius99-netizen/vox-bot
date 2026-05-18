@@ -15,7 +15,7 @@ import os
 
 app = Flask('')
 
-@app.route('/')
+@app.route('/', methods=['GET', 'HEAD'])
 def home():
     return "Vøx Bot tá online!"
 
