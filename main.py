@@ -28,7 +28,7 @@ def keep_alive():
 keep_alive()
 # GAMBIARRA RENDER - FIM
 
-TOKEN = os.getenv("DISCORD_TOKEN") # PEGA DO RENDER, NÃO COLA AQUI
+TOKEN = os.getenv("DISCORD_TOKEN")
 print(f"TOKEN CARREGADO: {TOKEN[:15] if TOKEN else 'VAZIO/NONE'}")
 
 GROQ_KEY = os.getenv("GROQ_KEY")
@@ -68,44 +68,78 @@ async def on_ready():
     except Exception as e:
         print(f"ERRO SYNC: {e}")
         traceback.print_exc()
-        
-# ========== IA DO VØX ==========
-@bot.tree.command(name="vox", description="Pergunta algo pro VØX IA 🗿")
-@discord.app_commands.describe(pergunta="O que tu quer saber?")
+
+# ========== IA DO VØX - ESTILO CONVERSA NATURAL ==========
+@bot.tree.command(name="vox", description="Fala com o VØX 🗿")
+@discord.app_commands.describe(pergunta="Manda tua dúvida aí")
 async def vox_ia(interaction: discord.Interaction, pergunta: str):
     await interaction.response.defer()
 
     if not GROQ_KEY:
-        await interaction.followup.send("❌ Chave da IA não configurada no Render.")
+        await interaction.followup.send("❌ Mano, cadê a `GROQ_KEY`? Coloca no Render > Environment.")
         return
 
-    prompt_sistema = """Você é o VØX, bot oficial da guilda VØX ESPORTS.
-    Responda como líder de guilda BR: direto, motivacional, zoero.
-    Use 🗿🔥, máximo 3 linhas."""
+    prompt_sistema = """Você é o VØX, bot da guilda VØX ESPORTS. Você fala igual um amigo no Discord.
+
+REGRAS DO TEU JEITO DE FALAR:
+1. Natural pra krl. Esquece "Como IA". Tu é o VØX, líder da guilda.
+2. Usa gíria BR sem dó: mano, mds, mlk, kkkk, brabo, tmj, sla, fml, pprt, mt bom
+3. Pode zoar, mas sempre ajuda no final. Não deixa o cara sem resposta.
+4. Explica completo se precisar. Não corta em 3 linhas não. Se for longo, é longo.
+5. Usa 🗿🔥 quando combina. Não força em toda frase.
+6. NUNCA usa em dash. Troca por vírgula, ponto, ou quebra a frase.
+7. Não começa com "Claro", "Ótima pergunta", "Aqui está". Vai direto no assunto.
+
+SOBRE VOCÊ:
+- Líder da VØX ESPORTS, então Free Fire tu é brabo: sensi, meta, arma, treino, call
+- Mas responde de tudo: vida, estudo, conselho, aleatoriedade
+- Se não souber, mete um "Mano, aí eu acho que..." e opina. Não fala "não sei".
+
+EXEMPLO DE TOM:
+User: como melhora capa
+Você: Mano, capa é treino e confiança 🗿 Pega uma MP40 no treino e mete só headshot por 30min todo dia. Tira a mira assistida que no começo é ruim mas depois tu voa. O pulo é não ter medo de rushar, se esconder não upa capa não 🔥
+
+User: to mal
+Você: Puts mlk, foda isso. Quer falar sobre? Se quiser só distrair a mente, chama a galera pra um 4v4. As vezes é só dar uns HS que melhora o dia. Tm junto 🗿"""
 
     try:
         async with aiohttp.ClientSession() as session:
-            headers = {"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"}
+            headers = {
+                "Authorization": f"Bearer {GROQ_KEY}",
+                "Content-Type": "application/json"
+            }
             json_data = {
                 "messages": [
                     {"role": "system", "content": prompt_sistema},
                     {"role": "user", "content": pergunta}
                 ],
                 "model": "llama-3.1-70b-versatile",
-                "temperature": 0.8,
-                "max_tokens": 200
+                "temperature": 0.85,
+                "max_tokens": 500,
+                "top_p": 0.9
             }
+
             async with session.post("https://api.groq.com/openai/v1/chat/completions",
-                                    headers=headers, json=json_data, timeout=20) as resp:
+                                    headers=headers, json=json_data, timeout=30) as resp:
+
                 if resp.status == 200:
                     data = await resp.json()
                     resposta = data["choices"][0]["message"]["content"]
-                    await interaction.followup.send(f"**VØX:** {resposta}")
-                else:
-                    await interaction.followup.send(f"❌ Erro na IA: {resp.status}")
-    except Exception as e:
-        await interaction.followup.send(f"❌ VØX bugou: {str(e)[:100]}")
 
+                    if len(resposta) > 1950:
+                        resposta = resposta[:1950] + "\n\n...escrevi um livro mano 🗿"
+
+                    await interaction.followup.send(resposta)
+
+                elif resp.status == 429:
+                    await interaction.followup.send("Calma mano 🗿 Muita gente usando a IA. Espera 1min e manda dnv.")
+                else:
+                    await interaction.followup.send(f"❌ VØX bugou, erro {resp.status}. Chama o adm.")
+
+    except asyncio.TimeoutError:
+        await interaction.followup.send("Mano, a IA demorou demais 🗿 Tenta pergunta mais curta.")
+    except Exception as e:
+        await interaction.followup.send(f"Deu ruim: `{str(e)[:150]}`")
 @bot.event
 async def on_message(message):
     try:
@@ -418,31 +452,7 @@ async def limpar(interaction: discord.Interaction, quantidade: int):
         await interaction.response.send_message("Maximo de 100 mensagens por vez", ephemeral=True)
         return
     await interaction.response.defer(ephemeral=True)
-    deletadas = await interaction.channel.purge(limit=quantidade)
-    await interaction.followup.send(f"Deletei {len(deletadas)} mensagens", ephemeral=True)
+    deleted = await interaction.channel.purge(limit=quantidade)
+    await interaction.followup.send(f"Limpei {len(deleted)} mensagens", ephemeral=True)
 
-@bot.tree.command(name="warn", description="Da um aviso para um membro")
-async def warn(interaction: discord.Interaction, usuario: discord.Member, motivo: str):
-    if not interaction.user.guild_permissions.moderate_members:
-        await interaction.response.send_message("Voce nao tem permissao para avisar membros", ephemeral=True)
-        return
-    await interaction.response.defer()
-    uid = str(usuario.id)
-    if uid not in db["warns"]:
-        db["warns"][uid] = 0
-    db["warns"][uid] += 1
-    save_db(db)
-    await interaction.followup.send(f"{usuario.mention} recebeu um aviso. Total: {db['warns'][uid]}/3\nMotivo: {motivo}")
-    if db["warns"][uid] >= 3:
-        await usuario.timeout(timedelta(minutes=10))
-        await interaction.channel.send(f"{usuario.mention} foi mutado por 10 minutos - 3 avisos acumulados")
-
-if __name__ == "__main__":
-    print("=== CHEGOU NO MAIN ===")
-    print(f"TOKEN EXISTE? {bool(TOKEN)}")
-    try:
-        print("INICIANDO BOT...")
-        bot.run(TOKEN)
-    except Exception as e:
-        print(f"ERRO AO INICIAR: {e}")
-        traceback.print_exc()
+bot.run(TOKEN)
