@@ -8,9 +8,10 @@ import traceback
 from datetime import datetime, timedelta
 import aiohttp
 
-# GAMBIARRA RENDER - INÍCIO
+# GAMBIARRA RENDER - INÍCIO - CORRIGIDA
 from flask import Flask
 from threading import Thread
+import os
 
 app = Flask('')
 
@@ -19,7 +20,8 @@ def home():
     return "Vøx Bot tá online!"
 
 def run_flask():
-    app.run(host='0.0.0.0', port=10000)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
 
 def keep_alive():
     t = Thread(target=run_flask)
@@ -140,6 +142,7 @@ Você: Puts mlk, foda isso. Quer falar sobre? Se quiser só distrair a mente, ch
         await interaction.followup.send("Mano, a IA demorou demais 🗿 Tenta pergunta mais curta.")
     except Exception as e:
         await interaction.followup.send(f"Deu ruim: `{str(e)[:150]}`")
+
 @bot.event
 async def on_message(message):
     try:
@@ -422,37 +425,8 @@ async def mutar(interaction: discord.Interaction, usuario: discord.Member, tempo
     embed.add_field(name="Usuario", value=usuario.mention, inline=True)
     embed.add_field(name="Tempo", value=f"{tempo} minutos", inline=True)
     embed.add_field(name="Motivo", value=motivo, inline=False)
-    embed.add_field(name="Staff", value=interaction.user.mention, inline=False)
+    embed.add_field(name="Moderador", value=interaction.user.mention, inline=True)
     await interaction.followup.send(embed=embed)
 
-@bot.tree.command(name="kick", description="Expulsa um membro")
-async def kick(interaction: discord.Interaction, usuario: discord.Member, motivo: str):
-    if not interaction.user.guild_permissions.kick_members:
-        await interaction.response.send_message("Voce nao tem permissao para expulsar membros", ephemeral=True)
-        return
-    await interaction.response.defer()
-    await usuario.kick(reason=motivo)
-    await interaction.followup.send(f"{usuario.name} foi expulso. Motivo: {motivo}")
-
-@bot.tree.command(name="ban", description="Bane um membro")
-async def ban(interaction: discord.Interaction, usuario: discord.Member, motivo: str):
-    if not interaction.user.guild_permissions.ban_members:
-        await interaction.response.send_message("Voce nao tem permissao para banir membros", ephemeral=True)
-        return
-    await interaction.response.defer()
-    await usuario.ban(reason=motivo)
-    await interaction.followup.send(f"{usuario.name} foi banido. Motivo: {motivo}")
-
-@bot.tree.command(name="limpar", description="Deleta mensagens do canal")
-async def limpar(interaction: discord.Interaction, quantidade: int):
-    if not interaction.user.guild_permissions.manage_messages:
-        await interaction.response.send_message("Voce nao tem permissao para gerenciar mensagens", ephemeral=True)
-        return
-    if quantidade > 100:
-        await interaction.response.send_message("Maximo de 100 mensagens por vez", ephemeral=True)
-        return
-    await interaction.response.defer(ephemeral=True)
-    deleted = await interaction.channel.purge(limit=quantidade)
-    await interaction.followup.send(f"Limpei {len(deleted)} mensagens", ephemeral=True)
-
+# TEM QUE SER A ÚLTIMA LINHA
 bot.run(TOKEN)
